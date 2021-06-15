@@ -38,7 +38,7 @@ jobs:
           pattern: '^documentation\|^docker\|^scripts'
           invert: "true"
       - uses: ./.github/actions/build-setup
-        if: ${{ steps.rust-changes.outputs.changes-found == 'true' }}
+        # if: ${{ steps.rust-changes.outputs.changes-found == 'true' }}
       - uses: actions/cache@v2.1.6
         if: ${{ steps.rust-changes.outputs.changes-found == 'true' }}
         with:
