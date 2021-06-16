@@ -50,8 +50,8 @@ $ move compile <move_file_1> ... <move_file_n>
 $ move compile <dir_1> ... <dir_n>
 ```
 
-compiled modules will by default be stored in the `build` directory. You can
-change where the output bytecode is saved by passing the the optional
+Compiled modules will by default be stored in the `build` directory. You can
+change where the output bytecode is saved by passing the optional
 `--build-dir` flag:
 
 ```shell
@@ -71,12 +71,11 @@ $ move compile --check <dir_1> ... <dir_n>
 
 The sandbox allows you to experiment with writing and running Move code without
 validators, a blockchain, or transactions. Persistent data is stored on-disk in
-a directory structure that mimics the Move memory model
+a directory structure that mimics the Move memory model.
 
 ### Project structure
 
-Each Move CLI project with a given `name` should have the following structure to
-it:
+Each Move CLI project with a given `name` should have the following structure:
 
 ```
 name/
@@ -321,7 +320,7 @@ Additionally, there must be an `args.exp` file that contain the expected
 output from running the sequence of Move CLI commands specified in the
 `args.txt` file for that test.
 
-For example, if we wanted to create a Move CLI test that reran all of the
+For example, if we wanted to create a Move CLI test that re-ran all of the
 commands that we've seen so far, we could do so by adding an `args.txt`
 to the `readme` directory that we created at the start and that we've been
 adding scripts and modules to:
@@ -424,7 +423,7 @@ Module 00000000000000000000000000000002::Test
 ```
 
 The output indicates that not only the test is passed, but also that 100%
-instruction coverage is observed in the `publish` funciton. This is expected
+instruction coverage is observed in the `publish` function. This is expected
 as the whole purpose of our `test_script.move` is to run the `publish` function.
 At the same time, the other two functions, `unpublish` and `write`, are never
 executed, making the average coverage 27.78% for the whole `Test` module.
