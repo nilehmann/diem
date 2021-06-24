@@ -259,7 +259,7 @@ impl<'a> BinaryIndexedView<'a> {
             TypeParameter(idx) => constraints[*idx as usize],
             Vector(ty) => AbilitySet::polymorphic_abilities(
                 AbilitySet::VECTOR,
-                vec![self.abilities(ty, constraints)].into_iter(),
+                vec![(self.abilities(ty, constraints), false)],
             ),
             Struct(idx) => {
                 let sh = self.struct_handle_at(*idx);
@@ -268,9 +268,11 @@ impl<'a> BinaryIndexedView<'a> {
             StructInstantiation(idx, type_args) => {
                 let sh = self.struct_handle_at(*idx);
                 let declared_abilities = sh.abilities;
-                let type_argument_abilities =
-                    type_args.iter().map(|ty| self.abilities(ty, constraints));
-                AbilitySet::polymorphic_abilities(declared_abilities, type_argument_abilities)
+                let type_arguments = type_args
+                    .iter()
+                    .zip(&sh.type_parameters)
+                    .map(|(arg, param)| (self.abilities(arg, constraints), param.is_phantom));
+                AbilitySet::polymorphic_abilities(declared_abilities, type_arguments)
             }
         }
     }

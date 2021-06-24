@@ -249,8 +249,25 @@ pub struct StructHandle {
     /// For any instantiation of this type, the abilities of this type are predicated on
     /// that ability being satisfied for all type parameters.
     pub abilities: AbilitySet,
-    /// The type formals (identified by their index into the vec) and their constraints
-    pub type_parameters: Vec<AbilitySet>,
+    /// The type formals (identified by their index into the vec)
+    pub type_parameters: Vec<StructTypeParameter>,
+}
+
+impl StructHandle {
+    pub fn type_param_constraints(&self) -> impl ExactSizeIterator<Item = AbilitySet> + '_ {
+        self.type_parameters.iter().map(|param| param.constraints)
+    }
+}
+
+/// A type parameter used in the declaration of a struct.
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq, PartialOrd, Ord)]
+#[cfg_attr(any(test, feature = "fuzzing"), derive(Arbitrary))]
+#[cfg_attr(any(test, feature = "fuzzing"), proptest(no_params))]
+pub struct StructTypeParameter {
+    /// The type parameter constraints.
+    pub constraints: AbilitySet,
+    /// Whether the parameter is declared as phantom.
+    pub is_phantom: bool,
 }
 
 /// A `FunctionHandle` is a reference to a function. It is composed by a
@@ -647,23 +664,24 @@ impl AbilitySet {
     }
 
     /// For a polymorphic type, its actual abilities correspond to its declared abilities but
-    /// predicated on its type arguments having that ability. For `Key`, instead of needing
-    /// the same ability, the type arguments need `Store`
+    /// predicated on its non-phantom type arguments having that ability. For `Key`, instead of needing
+    /// the same ability, the type arguments need `Store`.
     pub fn polymorphic_abilities(
         declared_abilities: Self,
-        type_argument_abilities: impl IntoIterator<Item = Self>,
+        type_arguments: impl IntoIterator<Item = (Self, bool)>,
     ) -> Self {
         // Conceptually this is performing the following operation:
         // For any ability 'a' in `declared_abilities`
         // 'a' is in the result only if
-        //   for all 'ti' in `type_argument_abilities`, a.required() is a subset of ti
+        //   for all (abi_i, is_phantom_i) in `type_arguments` s.t. !is_phantom then a.required() is a subset of abi_i
         //
         // So to do this efficiently, we can determine the required_by set for each ti
         // and intersect them together along with the declared abilities
         // This only works because for any ability y, |y.requires()| == 1
-        type_argument_abilities
+        type_arguments
             .into_iter()
-            .map(|ty_arg_abilities| {
+            .filter(|(_, is_phantom)| !is_phantom)
+            .map(|(ty_arg_abilities, _)| {
                 ty_arg_abilities
                     .into_iter()
                     .map(|a| a.required_by())

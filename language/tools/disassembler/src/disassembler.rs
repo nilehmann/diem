@@ -13,8 +13,8 @@ use move_binary_format::{
     file_format::{
         Ability, AbilitySet, Bytecode, CompiledModule, CompiledScript, FieldHandleIndex,
         FunctionDefinition, FunctionDefinitionIndex, Signature, SignatureIndex, SignatureToken,
-        StructDefinition, StructDefinitionIndex, StructFieldInformation, TableIndex, TypeSignature,
-        Visibility,
+        StructDefinition, StructDefinitionIndex, StructFieldInformation, StructTypeParameter,
+        TableIndex, TypeSignature, Visibility,
     },
 };
 use move_core_types::identifier::IdentStr;
@@ -829,7 +829,36 @@ impl<Location: Clone + Eq> Disassembler<Location> {
         Ok(instrs)
     }
 
-    fn disassemble_type_formals(
+    fn disassemble_struct_type_formals(
+        source_map_ty_params: &[SourceName<Location>],
+        type_parameters: &[StructTypeParameter],
+    ) -> String {
+        let ty_params: Vec<String> = source_map_ty_params
+            .iter()
+            .zip(type_parameters)
+            .map(|((name, _), ty_param)| {
+                let abilities_str = if ty_param.constraints == AbilitySet::EMPTY {
+                    "".to_string()
+                } else {
+                    let ability_vec: Vec<_> = ty_param
+                        .constraints
+                        .into_iter()
+                        .map(Self::format_ability)
+                        .collect();
+                    format!(": {}", ability_vec.join(" + "))
+                };
+                format!(
+                    "{}{}{}",
+                    if ty_param.is_phantom { "phantom " } else { "" },
+                    name.as_str(),
+                    abilities_str
+                )
+            })
+            .collect();
+        Self::format_type_params(&ty_params)
+    }
+
+    fn disassemble_fun_type_formals(
         source_map_ty_params: &[SourceName<Location>],
         ablities: &[AbilitySet],
     ) -> String {
@@ -908,7 +937,7 @@ impl<Location: Clone + Eq> Disassembler<Location> {
             ""
         };
 
-        let ty_params = Self::disassemble_type_formals(
+        let ty_params = Self::disassemble_fun_type_formals(
             &function_source_map.type_parameters,
             &function_handle.type_parameters,
         );
@@ -1021,7 +1050,7 @@ impl<Location: Clone + Eq> Disassembler<Location> {
             .identifier_at(struct_handle.name)
             .to_string();
 
-        let ty_params = Self::disassemble_type_formals(
+        let ty_params = Self::disassemble_struct_type_formals(
             &struct_source_map.type_parameters,
             &struct_handle.type_parameters,
         );

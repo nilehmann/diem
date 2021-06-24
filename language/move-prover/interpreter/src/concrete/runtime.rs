@@ -294,7 +294,7 @@ fn get_abilities(env: &GlobalEnv, ty: &TypeTag) -> PartialVMResult<AbilitySet> {
         TypeTag::Signer => AbilitySet::SIGNER,
         TypeTag::Vector(elem_ty) => AbilitySet::polymorphic_abilities(
             AbilitySet::VECTOR,
-            vec![get_abilities(env, elem_ty)?],
+            vec![(get_abilities(env, elem_ty)?, false)],
         ),
         TypeTag::Struct(struct_tag) => {
             let struct_id = env.find_struct_by_tag(struct_tag).ok_or_else(|| {
@@ -309,7 +309,10 @@ fn get_abilities(env: &GlobalEnv, ty: &TypeTag) -> PartialVMResult<AbilitySet> {
             let ty_arg_abilities = struct_tag
                 .type_params
                 .iter()
-                .map(|arg| get_abilities(env, arg))
+                .enumerate()
+                .map(|(idx, arg)| {
+                    get_abilities(env, arg).map(|abs| (abs, struct_env.is_phantom_parameter(idx)))
+                })
                 .collect::<PartialVMResult<Vec<_>>>()?;
             AbilitySet::polymorphic_abilities(struct_env.get_abilities(), ty_arg_abilities)
         }

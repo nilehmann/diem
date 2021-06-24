@@ -68,7 +68,11 @@ fn create_struct_value(module: &CompiledModule) -> (AbstractValue, Vec<Signature
         .map(|field| field.type_signature().token().as_inner().clone())
         .collect();
     let struct_abilities = struct_def_view.abilities();
-    let type_argument_abilities = tokens.iter().map(|token| abilities(module, token, &[]));
+
+    let type_argument_abilities = tokens
+        .iter()
+        .zip(struct_def_view.type_parameters())
+        .map(|(arg, param)| (abilities(module, arg, &[]), param.is_phantom));
     let abilities = AbilitySet::polymorphic_abilities(struct_abilities, type_argument_abilities);
     (
         AbstractValue::new_struct(SignatureToken::Struct(struct_def.struct_handle), abilities),
