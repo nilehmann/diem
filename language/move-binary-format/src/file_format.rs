@@ -666,10 +666,28 @@ impl AbilitySet {
     /// For a polymorphic type, its actual abilities correspond to its declared abilities but
     /// predicated on its non-phantom type arguments having that ability. For `Key`, instead of needing
     /// the same ability, the type arguments need `Store`.
-    pub fn polymorphic_abilities(
+    pub fn polymorphic_abilities<I1, I2>(
         declared_abilities: Self,
-        type_arguments: impl IntoIterator<Item = (Self, bool)>,
-    ) -> Self {
+        declared_phantom_parameters: I1,
+        type_arguments: I2,
+    ) -> PartialVMResult<Self>
+    where
+        I1: IntoIterator<Item = bool>,
+        I2: IntoIterator<Item = Self>,
+        I1::IntoIter: ExactSizeIterator,
+        I2::IntoIter: ExactSizeIterator,
+    {
+        let declared_phantom_parameters = declared_phantom_parameters.into_iter();
+        let type_arguments = type_arguments.into_iter();
+
+        if declared_phantom_parameters.len() != type_arguments.len() {
+            return Err(
+                PartialVMError::new(StatusCode::VERIFIER_INVARIANT_VIOLATION).with_message(
+                    "the length of `declared_phantom_parameters` doesn't match the length of `type_arguments`".to_string(),
+                ),
+            );
+        }
+
         // Conceptually this is performing the following operation:
         // For any ability 'a' in `declared_abilities`
         // 'a' is in the result only if
@@ -678,8 +696,8 @@ impl AbilitySet {
         // So to do this efficiently, we can determine the required_by set for each ti
         // and intersect them together along with the declared abilities
         // This only works because for any ability y, |y.requires()| == 1
-        type_arguments
-            .into_iter()
+        let abs = type_arguments
+            .zip(declared_phantom_parameters)
             .filter(|(_, is_phantom)| !is_phantom)
             .map(|(ty_arg_abilities, _)| {
                 ty_arg_abilities
@@ -689,7 +707,8 @@ impl AbilitySet {
             })
             .fold(declared_abilities, |acc, ty_arg_abilities| {
                 acc.intersect(ty_arg_abilities)
-            })
+            });
+        Ok(abs)
     }
 
     pub fn from_u8(byte: u8) -> Option<Self> {

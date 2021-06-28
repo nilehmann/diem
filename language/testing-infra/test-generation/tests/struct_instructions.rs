@@ -69,11 +69,14 @@ fn create_struct_value(module: &CompiledModule) -> (AbstractValue, Vec<Signature
         .collect();
     let struct_abilities = struct_def_view.abilities();
 
-    let type_argument_abilities = tokens
-        .iter()
-        .zip(struct_def_view.type_parameters())
-        .map(|(arg, param)| (abilities(module, arg, &[]), param.is_phantom));
-    let abilities = AbilitySet::polymorphic_abilities(struct_abilities, type_argument_abilities);
+    let type_argument_abilities = tokens.iter().map(|arg| abilities(module, arg, &[]));
+    let declared_phantom_parameters = [false].repeat(type_argument_abilities.len());
+    let abilities = AbilitySet::polymorphic_abilities(
+        struct_abilities,
+        declared_phantom_parameters,
+        type_argument_abilities,
+    )
+    .unwrap();
     (
         AbstractValue::new_struct(SignatureToken::Struct(struct_def.struct_handle), abilities),
         tokens,

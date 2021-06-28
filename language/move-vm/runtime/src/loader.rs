@@ -984,22 +984,27 @@ impl Loader {
                 "Unexpected TyParam type after translating from TypeTag to Type".to_string(),
             )),
 
-            Type::Vector(ty) => Ok(AbilitySet::polymorphic_abilities(
+            Type::Vector(ty) => AbilitySet::polymorphic_abilities(
                 AbilitySet::VECTOR,
-                vec![(self.abilities(ty)?, false)].into_iter(),
-            )),
+                vec![false],
+                vec![self.abilities(ty)?],
+            ),
             Type::Struct(idx) => Ok(self.module_cache.read().struct_at(*idx).abilities),
             Type::StructInstantiation(idx, type_args) => {
                 let struct_type = self.module_cache.read().struct_at(*idx);
+                let declared_phantom_parameters = struct_type
+                    .type_parameters
+                    .iter()
+                    .map(|param| param.is_phantom);
                 let type_argument_abilities = type_args
                     .iter()
-                    .zip(&struct_type.type_parameters)
-                    .map(|(arg, param)| self.abilities(arg).map(|abs| (abs, param.is_phantom)))
+                    .map(|arg| self.abilities(arg))
                     .collect::<PartialVMResult<Vec<_>>>()?;
-                Ok(AbilitySet::polymorphic_abilities(
+                AbilitySet::polymorphic_abilities(
                     struct_type.abilities,
+                    declared_phantom_parameters,
                     type_argument_abilities,
-                ))
+                )
             }
         }
     }

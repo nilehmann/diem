@@ -399,8 +399,10 @@ pub fn abilities(
         TypeParameter(idx) => constraints[*idx as usize],
         Vector(ty) => AbilitySet::polymorphic_abilities(
             AbilitySet::VECTOR,
-            vec![(abilities(module, ty, constraints), false)],
-        ),
+            vec![false],
+            vec![abilities(module, ty, constraints)],
+        )
+        .unwrap(),
         Struct(idx) => {
             let sh = module.struct_handle_at(*idx);
             sh.abilities
@@ -408,11 +410,17 @@ pub fn abilities(
         StructInstantiation(idx, type_args) => {
             let sh = module.struct_handle_at(*idx);
             let declared_abilities = sh.abilities;
+            let declared_phantom_parameters =
+                sh.type_parameters.iter().map(|param| param.is_phantom);
             let type_arguments = type_args
                 .iter()
-                .zip(&sh.type_parameters)
-                .map(|(arg, param)| (abilities(module, arg, constraints), param.is_phantom));
-            AbilitySet::polymorphic_abilities(declared_abilities, type_arguments)
+                .map(|arg| abilities(module, arg, constraints));
+            AbilitySet::polymorphic_abilities(
+                declared_abilities,
+                declared_phantom_parameters,
+                type_arguments,
+            )
+            .unwrap()
         }
     }
 }

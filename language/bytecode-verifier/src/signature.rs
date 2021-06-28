@@ -317,11 +317,8 @@ impl<'a> SignatureChecker<'a> {
         constraints: impl IntoIterator<Item = AbilitySet>,
         global_abilities: &[AbilitySet],
     ) -> PartialVMResult<()> {
-        let abilities = type_arguments
-            .iter()
-            .map(|ty| self.resolver.abilities(ty, global_abilities));
-        for ((constraint, given), ty) in constraints.into_iter().zip(abilities).zip(type_arguments)
-        {
+        for (constraint, ty) in constraints.into_iter().zip(type_arguments) {
+            let given = self.resolver.abilities(ty, global_abilities)?;
             if !constraint.is_subset(given) {
                 return Err(PartialVMError::new(StatusCode::CONSTRAINT_NOT_SATISFIED)
                     .with_message(format!(

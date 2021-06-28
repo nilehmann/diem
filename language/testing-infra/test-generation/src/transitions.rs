@@ -490,14 +490,17 @@ pub fn struct_abilities(
         .module
         .module
         .struct_handle_at(struct_def.struct_handle);
+    let declared_phantom_parameters = struct_handle
+        .type_parameters
+        .iter()
+        .map(|param| param.is_phantom);
     let type_argument_abilities = abilities_for_instantiation(state, &type_args.0);
     AbilitySet::polymorphic_abilities(
         struct_handle.abilities,
-        type_argument_abilities
-            .into_iter()
-            .zip(&struct_handle.type_parameters)
-            .map(|(arg, param)| (arg, param.is_phantom)),
+        declared_phantom_parameters,
+        type_argument_abilities,
     )
+    .unwrap()
 }
 
 pub fn struct_inst_abilities(
